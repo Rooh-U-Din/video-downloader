@@ -40,8 +40,8 @@ def progress_hook(d):
             pass
 
 # Streamlit UI
-st.title("Multi-Platform Video Downloader")
-st.write("Download videos from YouTube, Facebook, and other platforms")
+st.title("Video Downloader")
+st.write("Download videos from YouTube and Facebook.")
 
 url = st.text_input("Enter Video URL:", placeholder="https://...")
 
@@ -51,7 +51,7 @@ platform = "facebook" if "facebook.com" in url.lower() else "youtube" if "youtub
 # Quality options (common options that work for both platforms)
 quality = st.selectbox(
     "Select video quality:",
-    options=["2160","1440","1080", "720", "480", "360"],
+    options=["4320","2160","1440","1080", "720", "480", "360"],
     index=0 if platform == "facebook" else 1  # Default to 720p for YouTube
 )
 
