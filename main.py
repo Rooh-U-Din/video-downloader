@@ -68,11 +68,11 @@ st.write("Download videos or audio from YouTube and Facebook.")
 url = st.text_input("Enter Video URL:", placeholder="https://...")
 
 # Detect platform
-platform = "facebook" if "facebook.com" in url.lower() else "youtube" if "youtube.com" in url.lower() else "other"
+platform = "facebook" if "facebook.com" in url.lower() else "youtube" if "youtube.com" in url.lower() else "other" "instagram" if "instagram.com" in url.lower() else "other"
 
 # Quality Selection
 quality = st.selectbox("Select video quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
-audio_quality = st.selectbox("Select audio quality:", ["64k", "128k", "192k", "256k", "320k"])
+audio_quality = st.selectbox("Select audio quality:", ["64k", "128k", "192k"])
 
 progress_bar = st.progress(0)
 
