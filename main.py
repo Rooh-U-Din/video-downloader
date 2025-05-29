@@ -7,9 +7,6 @@ from pathlib import Path
 DOWNLOAD_FOLDER = "downloads"
 Path(DOWNLOAD_FOLDER).mkdir(exist_ok=True)
 
-# Progress bar globally set
-
-
 # Progress Hook
 def progress_hook(d):
     if d['status'] == 'downloading':
