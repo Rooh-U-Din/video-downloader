@@ -8,7 +8,7 @@ DOWNLOAD_FOLDER = "downloads"
 Path(DOWNLOAD_FOLDER).mkdir(exist_ok=True)
 
 # Progress bar globally set
-progress_bar = st.progress(0)
+
 
 # Progress Hook
 def progress_hook(d):
@@ -73,6 +73,8 @@ platform = "facebook" if "facebook.com" in url.lower() else "youtube" if "youtub
 # Quality Selection
 quality = st.selectbox("Select video quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
 audio_quality = st.selectbox("Select audio quality:", ["64k", "128k", "192k", "256k", "320k"])
+
+progress_bar = st.progress(0)
 
 # Download Video Button
 if st.button("Download Video"):
