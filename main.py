@@ -2,46 +2,51 @@ import streamlit as st
 import yt_dlp
 import os
 from pathlib import Path
-from yt_dlp.utils import sanitize_filename
+import re
 
-# Configuration
+# --- Utility ---
+def sanitize_filename(title, max_length=100):
+    title = re.sub(r'[\\/*?:"<>|🥵\u0000-\u001F]', "", title)  # Invalid chars
+    title = re.sub(r'\s+', ' ', title).strip()  # Extra spaces
+    return title[:max_length]  # Max length
+
+# --- Config ---
 DOWNLOAD_FOLDER = "downloads"
 Path(DOWNLOAD_FOLDER).mkdir(exist_ok=True)
 
-# Progress bar placeholder
+# --- Progress Bar ---
 progress_bar = st.progress(0)
 
-# Progress Hook
 def progress_hook(d):
     if d['status'] == 'downloading':
         percent = d.get('_percent_str', '0%').replace('%', '')
         try:
-            progress_float = float(percent)
-            progress_bar.progress(progress_float / 100)
+            progress_bar.progress(float(percent) / 100)
         except:
             pass
 
-# Download Video Function
+# --- Download Video ---
 def download_video(url, quality):
     try:
+        # Extract info for title
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            title = sanitize_filename(info.get('title', 'video'))
+
+        # Options
         ydl_opts = {
             'format': f'bestvideo[height={quality}]+bestaudio/best/best[height<={quality}]',
             'merge_output_format': 'mp4',
             'progress_hooks': [progress_hook],
-            'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
+            'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{title}.%(ext)s'),
             'postprocessors': [{'key': 'FFmpegMerger'}],
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['desktop'],
-                }
-            }
+            'extractor_args': {'youtube': {'player_client': ['desktop']}}
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            title = sanitize_filename(info.get('title', 'video'))
             ydl.download([url])
-            filename = os.path.splitext(ydl.prepare_filename(info))[0] + ".mp4"
+
+        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp4")
 
         if not os.path.exists(filename):
             return False, "Downloaded file not found.", None
@@ -51,13 +56,17 @@ def download_video(url, quality):
     except Exception as e:
         return False, str(e), None
 
-# Download Audio Function
+# --- Download Audio ---
 def download_audio(url, audio_quality):
     try:
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            title = sanitize_filename(info.get('title', 'audio'))
+
         ydl_opts = {
             'format': 'bestaudio/best',
             'progress_hooks': [progress_hook],
-            'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
+            'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{title}.%(ext)s'),
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -66,10 +75,9 @@ def download_audio(url, audio_quality):
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            title = sanitize_filename(info.get('title', 'audio'))
             ydl.download([url])
-            filename = os.path.splitext(ydl.prepare_filename(info))[0] + ".mp3"
+
+        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
 
         if not os.path.exists(filename):
             return False, "Downloaded audio not found.", None
@@ -79,23 +87,22 @@ def download_audio(url, audio_quality):
     except Exception as e:
         return False, str(e), None
 
-# Streamlit UI
+# --- Streamlit UI ---
 st.title("🎬 YouTube Video & Audio Downloader")
 st.write("HD video ya MP3 download karein YouTube se.")
 
-url = st.text_input("🔗 Video URL daalein:", placeholder="https://www.youtube.com/watch?v=...")
+url = st.text_input("🔗 YouTube Video URL:", placeholder="https://www.youtube.com/watch?v=...")
+quality = st.selectbox("🎥 Video Quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
+audio_quality = st.selectbox("🎧 MP3 Quality:", ["64k", "128k", "192k"])
 
-quality = st.selectbox("🎥 Video quality chunein:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
-audio_quality = st.selectbox("🎧 Audio quality chunein:", ["64k", "128k", "192k"])
-
-# Download Video
+# --- Video Download Button ---
 if st.button("📥 Video Download karein"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("Video download ho raha hai..."):
+        with st.spinner("Video downloading..."):
             success, message, filename = download_video(url, quality)
             if success:
-                st.success(f"✅ Video download hogaya: {message}")
+                st.success(f"✅ Video downloaded: {message}")
                 progress_bar.progress(100)
                 with open(filename, "rb") as file:
                     st.download_button(
@@ -107,20 +114,20 @@ if st.button("📥 Video Download karein"):
             else:
                 st.error(f"❌ Error: {message}")
     else:
-        st.warning("⚠️ Valid YouTube URL daalein")
+        st.warning("⚠️ YouTube URL daalein.")
 
-# Download Audio
-if st.button("🎵 Sirf MP3 Download karein"):
+# --- Audio Download Button ---
+if st.button("🎵 MP3 Download karein"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("Audio download ho raha hai..."):
+        with st.spinner("Audio downloading..."):
             success, message, filename = download_audio(url, audio_quality)
             if success:
-                st.success(f"✅ Audio download hogaya: {message}")
+                st.success(f"✅ Audio downloaded: {message}")
                 progress_bar.progress(100)
                 with open(filename, "rb") as file:
                     st.download_button(
-                        label="💾 Save Audio",
+                        label="💾 Save MP3",
                         data=file,
                         file_name=os.path.basename(filename),
                         mime="audio/mp3"
@@ -128,4 +135,4 @@ if st.button("🎵 Sirf MP3 Download karein"):
             else:
                 st.error(f"❌ Error: {message}")
     else:
-        st.warning("⚠️ Valid YouTube URL daalein")
+        st.warning("⚠️ YouTube URL daalein.")
