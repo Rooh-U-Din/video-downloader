@@ -20,7 +20,7 @@ def sanitize_filename(title, max_length=100):
     return title[:max_length]
 
 # 🔄 Progress bar
-progress_bar = st.progress(0)
+
 
 # ✅ Download progress update
 def progress_hook(d):
@@ -102,10 +102,11 @@ def download_audio(url, audio_quality):
 st.title("🎬Video & Audio Downloader")
 st.write("Download YouTube videos and audio directly from the web.")
 
+
 url = st.text_input("🔗 YouTube or Facebook Video URL:", placeholder="https://www.youtube.com/watch?v=...")
 quality = st.selectbox("🎥 Video Quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
 audio_quality = st.selectbox("🎧 Audio Quality:", ["64k", "128k", "192k"])
-
+progress_bar = st.progress(0)
 # 📥 Download Video
 if st.button("📽️ Download Video"):
     progress_bar.progress(0)
