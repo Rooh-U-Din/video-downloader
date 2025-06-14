@@ -1,22 +1,24 @@
 import streamlit as st
 import yt_dlp
 import os
-from pathlib import Path
 import re
+from pathlib import Path
+from io import BytesIO
 
-# --- Utility ---
-def sanitize_filename(title, max_length=100):
-    title = re.sub(r'[\\/*?:"<>|🥵\u0000-\u001F]', "", title)  # Invalid chars
-    title = re.sub(r'\s+', ' ', title).strip()  # Extra spaces
-    return title[:max_length]  # Max length
-
-# --- Config ---
+# 📁 Folder for downloads
 DOWNLOAD_FOLDER = "downloads"
 Path(DOWNLOAD_FOLDER).mkdir(exist_ok=True)
 
-# --- Progress Bar ---
+# 🚫 Fix: Remove dangerous characters in filenames
+def sanitize_filename(title, max_length=100):
+    title = re.sub(r'[\\/*?:"<>|🥵\u0000-\u001F]', "", title)
+    title = re.sub(r'\s+', ' ', title).strip()
+    return title[:max_length]
+
+# 🔄 Progress bar
 progress_bar = st.progress(0)
 
+# ✅ Download progress update
 def progress_hook(d):
     if d['status'] == 'downloading':
         percent = d.get('_percent_str', '0%').replace('%', '')
@@ -25,28 +27,30 @@ def progress_hook(d):
         except:
             pass
 
-# --- Download Video ---
+# 🎥 Download Video Function (Safe)
 def download_video(url, quality):
     try:
-        # Extract info for title
+        # Step 1: Extract info to get title
         with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
             info = ydl.extract_info(url, download=False)
             title = sanitize_filename(info.get('title', 'video'))
 
-        # Options
+        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp4")
+
+        # Step 2: Set download options
         ydl_opts = {
             'format': f'bestvideo[height={quality}]+bestaudio/best/best[height<={quality}]',
             'merge_output_format': 'mp4',
             'progress_hooks': [progress_hook],
             'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{title}.%(ext)s'),
             'postprocessors': [{'key': 'FFmpegMerger'}],
-            'extractor_args': {'youtube': {'player_client': ['desktop']}}
+            'extractor_args': {'youtube': {'player_client': ['desktop']}},
+            'quiet': True,
         }
 
+        # Step 3: Download video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-
-        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp4")
 
         if not os.path.exists(filename):
             return False, "Downloaded file not found.", None
@@ -56,12 +60,14 @@ def download_video(url, quality):
     except Exception as e:
         return False, str(e), None
 
-# --- Download Audio ---
+# 🎧 Download Audio Function (Safe)
 def download_audio(url, audio_quality):
     try:
         with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
             info = ydl.extract_info(url, download=False)
             title = sanitize_filename(info.get('title', 'audio'))
+
+        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
 
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -71,13 +77,12 @@ def download_audio(url, audio_quality):
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': audio_quality,
-            }]
+            }],
+            'quiet': True,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-
-        filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
 
         if not os.path.exists(filename):
             return False, "Downloaded audio not found.", None
@@ -87,52 +92,54 @@ def download_audio(url, audio_quality):
     except Exception as e:
         return False, str(e), None
 
-# --- Streamlit UI ---
+# 🌐 Streamlit UI
 st.title("🎬 YouTube Video & Audio Downloader")
-st.write("HD video ya MP3 download karein YouTube se.")
+st.write("HD Video ya MP3 download karein YouTube se (Deploy-safe version)")
 
-url = st.text_input("🔗 YouTube Video URL:", placeholder="https://www.youtube.com/watch?v=...")
+url = st.text_input("🔗 YouTube ya Facebook Video URL:", placeholder="https://www.youtube.com/watch?v=...")
 quality = st.selectbox("🎥 Video Quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
-audio_quality = st.selectbox("🎧 MP3 Quality:", ["64k", "128k", "192k"])
+audio_quality = st.selectbox("🎧 Audio Quality:", ["64k", "128k", "192k"])
 
-# --- Video Download Button ---
-if st.button("📥 Video Download karein"):
+# 📥 Download Video
+if st.button("📽️ Video Download karein"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("Video downloading..."):
-            success, message, filename = download_video(url, quality)
+        with st.spinner("⏬ Video download ho raha hai..."):
+            success, title, filepath = download_video(url, quality)
             if success:
-                st.success(f"✅ Video downloaded: {message}")
-                progress_bar.progress(100)
-                with open(filename, "rb") as file:
+                st.success(f"✅ Video download hogaya: {title}")
+                with open(filepath, "rb") as f:
                     st.download_button(
                         label="💾 Save Video",
-                        data=file,
-                        file_name=os.path.basename(filename),
+                        data=BytesIO(f.read()),
+                        file_name=os.path.basename(filepath),
                         mime="video/mp4"
                     )
+                os.remove(filepath)  # ✅ Clean up file (optional)
+                progress_bar.progress(100)
             else:
-                st.error(f"❌ Error: {message}")
+                st.error(f"❌ Error: {title}")
     else:
-        st.warning("⚠️ YouTube URL daalein.")
+        st.warning("⚠️ Pehle YouTube ya Facebook ka URL daalein")
 
-# --- Audio Download Button ---
-if st.button("🎵 MP3 Download karein"):
+# 🎵 Download Audio
+if st.button("🎵 Sirf MP3 Download karein"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("Audio downloading..."):
-            success, message, filename = download_audio(url, audio_quality)
+        with st.spinner("⏬ MP3 download ho raha hai..."):
+            success, title, filepath = download_audio(url, audio_quality)
             if success:
-                st.success(f"✅ Audio downloaded: {message}")
-                progress_bar.progress(100)
-                with open(filename, "rb") as file:
+                st.success(f"✅ MP3 download hogaya: {title}")
+                with open(filepath, "rb") as f:
                     st.download_button(
-                        label="💾 Save MP3",
-                        data=file,
-                        file_name=os.path.basename(filename),
+                        label="💾 Save Audio",
+                        data=BytesIO(f.read()),
+                        file_name=os.path.basename(filepath),
                         mime="audio/mp3"
                     )
+                os.remove(filepath)
+                progress_bar.progress(100)
             else:
-                st.error(f"❌ Error: {message}")
+                st.error(f"❌ Error: {title}")
     else:
-        st.warning("⚠️ YouTube URL daalein.")
+        st.warning("⚠️ Pehle YouTube ya Facebook ka URL daalein")
