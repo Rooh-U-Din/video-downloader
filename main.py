@@ -4,6 +4,10 @@ import os
 import re
 from pathlib import Path
 from io import BytesIO
+import yt_dlp.utils
+
+# Add this before your download functions
+yt_dlp.utils.std_headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
 # 📁 Folder for downloads
 DOWNLOAD_FOLDER = "downloads"
@@ -28,6 +32,7 @@ def progress_hook(d):
             pass
 
 # 🎥 Download Video Function (Safe)
+# 🎥 Download Video Function (Safe)
 def download_video(url, quality):
     try:
         # Step 1: Extract info to get title
@@ -37,14 +42,13 @@ def download_video(url, quality):
 
         filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp4")
 
-        # Step 2: Set download options
+        # Step 2: Set download options with improved format selection
         ydl_opts = {
-            'format': f'bestvideo[height={quality}]+bestaudio/best/best[height<={quality}]',
+            'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]',
             'merge_output_format': 'mp4',
             'progress_hooks': [progress_hook],
             'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{title}.%(ext)s'),
-            'postprocessors': [{'key': 'FFmpegMerger'}],
-            'extractor_args': {'youtube': {'player_client': ['desktop']}},
+            'postprocessors': [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}],
             'quiet': True,
         }
 
@@ -52,8 +56,11 @@ def download_video(url, quality):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
+        # Check for both possible extensions (.mp4 and .mkv)
         if not os.path.exists(filename):
-            return False, "Downloaded file not found.", None
+            filename = os.path.join(DOWNLOAD_FOLDER, f"{title}.mkv")
+            if not os.path.exists(filename):
+                return False, "Downloaded file not found.", None
 
         return True, title, filename
 
