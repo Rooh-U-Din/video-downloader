@@ -32,7 +32,6 @@ def progress_hook(d):
             pass
 
 # 🎥 Download Video Function (Safe)
-# 🎥 Download Video Function (Safe)
 def download_video(url, quality):
     try:
         # Step 1: Extract info to get title
@@ -100,21 +99,21 @@ def download_audio(url, audio_quality):
         return False, str(e), None
 
 # 🌐 Streamlit UI
-st.title("🎬 YouTube Video & Audio Downloader")
-st.write("HD Video ya MP3 download karein YouTube se (Deploy-safe version)")
+st.title("🎬Video & Audio Downloader")
+st.write("Download YouTube videos and audio directly from the web.")
 
-url = st.text_input("🔗 YouTube ya Facebook Video URL:", placeholder="https://www.youtube.com/watch?v=...")
+url = st.text_input("🔗 YouTube or Facebook Video URL:", placeholder="https://www.youtube.com/watch?v=...")
 quality = st.selectbox("🎥 Video Quality:", ["4320", "2160", "1440", "1080", "720", "480", "360"])
 audio_quality = st.selectbox("🎧 Audio Quality:", ["64k", "128k", "192k"])
 
 # 📥 Download Video
-if st.button("📽️ Video Download karein"):
+if st.button("📽️ Download Video"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("⏬ Video download ho raha hai..."):
+        with st.spinner("⏬ Video is downloading"):
             success, title, filepath = download_video(url, quality)
             if success:
-                st.success(f"✅ Video download hogaya: {title}")
+                st.success(f"✅ Video downloaded: {title}")
                 with open(filepath, "rb") as f:
                     st.download_button(
                         label="💾 Save Video",
@@ -127,16 +126,15 @@ if st.button("📽️ Video Download karein"):
             else:
                 st.error(f"❌ Error: {title}")
     else:
-        st.warning("⚠️ Pehle YouTube ya Facebook ka URL daalein")
-
+        st.warning("⚠️ Please enter link")
 # 🎵 Download Audio
-if st.button("🎵 Sirf MP3 Download karein"):
+if st.button("🎵 Audio Download"):
     progress_bar.progress(0)
     if url:
-        with st.spinner("⏬ MP3 download ho raha hai..."):
+        with st.spinner("⏬ Audio is downloading..."):
             success, title, filepath = download_audio(url, audio_quality)
             if success:
-                st.success(f"✅ MP3 download hogaya: {title}")
+                st.success(f"✅ MP3 downloaded: {title}")
                 with open(filepath, "rb") as f:
                     st.download_button(
                         label="💾 Save Audio",
@@ -149,4 +147,4 @@ if st.button("🎵 Sirf MP3 Download karein"):
             else:
                 st.error(f"❌ Error: {title}")
     else:
-        st.warning("⚠️ Pehle YouTube ya Facebook ka URL daalein")
+        st.warning("⚠️ Enter Video link")
